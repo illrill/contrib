@@ -40,7 +40,7 @@ jobs:
         run: |
           PR_DESCRIPTION_ONE_LINE=$(echo "$PR_DESCRIPTION" | tr '\n' '\r')
           RELEASE_NOTE=$(echo "$PR_DESCRIPTION_ONE_LINE" | grep -Po '(?s)```release-note\r(.*?)\r```' || true)
-          RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | tr '\r' '\n' | sed -n '3p')
+          RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | tr '\r' '\n' | awk 'NR>2')
           echo "Release note"
           echo "------------"
           printf "%s\n" "$RELEASE_NOTE_CONTENT"
