@@ -48,7 +48,6 @@ jobs:
           
           # Set the RELEASE_LABEL environment variable for later use
           echo RELEASE_LABEL=$RELEASE_LABEL >> $GITHUB_ENV
-        shell: bash
       - name: Check release note
         run: |
           # Convert PR description newlines to carriage returns
@@ -80,7 +79,6 @@ jobs:
           echo "RELEASE NOTE"
           echo "============"
           echo -e "$RELEASE_NOTE_CONTENT" | tr -s '\n'
-        shell: bash
   kind:
     runs-on: ubuntu-latest
     env:
@@ -118,4 +116,3 @@ jobs:
               gh issue edit ${{ github.event.number }} --add-label "${KIND_LABEL}"
             fi
           done
-        shell: bash
