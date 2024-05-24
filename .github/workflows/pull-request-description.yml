@@ -48,6 +48,7 @@ jobs:
           
           # Set the RELEASE_LABEL environment variable for later use
           echo RELEASE_LABEL=$RELEASE_LABEL >> $GITHUB_ENV
+        shell: bash
       - name: Check release note
         run: |
           # Convert PR description newlines to carriage returns
@@ -62,9 +63,9 @@ jobs:
           # Check if release note box is present
           if [[ -z $RELEASE_NOTE ]]; then
             echo "No release note found. Please include a meaningful release note in the PR description like this:"
-            echo "```release-note"
+            echo "\`\`\`release-note"
             echo "Your release note here"
-            echo "```"
+            echo "\`\`\`"
             exit 1
           fi
 
@@ -79,6 +80,8 @@ jobs:
           echo "RELEASE NOTE"
           echo "============"
           echo -e "$RELEASE_NOTE_CONTENT" | tr -s '\n'
+        shell: bash
+
   kind:
     runs-on: ubuntu-latest
     env:
@@ -116,3 +119,4 @@ jobs:
               gh issue edit ${{ github.event.number }} --add-label "${KIND_LABEL}"
             fi
           done
+        shell: bash
