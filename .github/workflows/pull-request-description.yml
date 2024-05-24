@@ -1,0 +1,121 @@
+name: Pull Request Description
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - edited
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      PR_DESCRIPTION: ${{ github.event.pull_request.body }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set release label
+        run: |
+          # Extract release types from PR description
+          RELEASE_TYPES=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/release )\b(major|minor|patch|none)\b' || true)
+          
+          # Check if a valid release type is found
+          if [[ -z $RELEASE_TYPES ]]; then
+            echo "No valid release type found. Specify /release <major|minor|patch|none> in the PR description."
+            exit 1
+          fi
+          
+          # Check if multiple release types are found
+          if [[ $(echo "$RELEASE_TYPES" | wc -l) -gt 1 ]]; then
+            echo "Multiple release types found. Specify a single /release <major|minor|patch|none> in the PR description."
+            exit 1
+          fi
+          
+          # Set the release label based on the release type
+          RELEASE_LABEL="release/${RELEASE_TYPES}"
+          
+          # Get the current release label of the pull request
+          OLD_LABEL=$(gh pr view ${{ github.event.number }} --json labels --jq '.labels[].name' | grep -E '^(release)/' || true)
+          
+          # Update the release label if it has changed
+          [[ $RELEASE_LABEL != $OLD_LABEL ]] && gh issue edit ${{ github.event.number }} --add-label "${RELEASE_LABEL}" --remove-label "${OLD_LABEL}"
+          
+          # Set the RELEASE_LABEL environment variable for later use
+          echo RELEASE_LABEL=$RELEASE_LABEL >> $GITHUB_ENV
+        shell: bash
+      - name: Check release note
+        run: |
+          # Convert PR description newlines to carriage returns
+          PR_DESCRIPTION=$(echo "$PR_DESCRIPTION" | tr '\n' '\r')
+
+          # Extract release note from PR description
+          RELEASE_NOTE=$(echo "$PR_DESC" | grep -Po '(?s)```release-note\r(.*?)\r```' || true)
+
+          # Convert release note carriage returns back to newlines and remove the first two lines and the last line
+          RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | tr '\r' '\n' | awk 'NR>2 && !/```/')
+
+          # Check if release note box is present
+          if [[ -z $RELEASE_NOTE ]]; then
+            echo "No release note found. Please include a meaningful release note in the PR description like this:"
+            echo "```release-note"
+            echo "Your release note here"
+            echo "```"
+            exit 1
+          fi
+
+          # Check that release note content is present if the release label is not 'none'
+          if [[ -z $RELEASE_NOTE_CONTENT && ${{ env.RELEASE_LABEL }} != "release/none" ]]; then
+            echo "Release note may not be empty since you specified release type ${{ env.RELEASE_LABEL }}. Please write a meaningful release note."
+            exit 1
+          fi
+
+          # Print the release note content
+          echo "============"
+          echo "RELEASE NOTE"
+          echo "============"
+          echo -e "$RELEASE_NOTE_CONTENT" | tr -s '\n'
+        shell: bash
+  kind:
+    runs-on: ubuntu-latest
+    env:
+      PR_DESCRIPTION: ${{ github.event.pull_request.body }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set kind label
+        run: |
+          # Extract kinds from PR description
+          KINDS=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/kind )\b(chore|feature|bug|cleanup|documentation)\b' || true)
+
+          # Check if a valid kind is found
+          if [[ -z $KINDS ]]; then
+            echo "No valid kind found. Specify /kind <chore|feature|bug|cleanup|documentation> in the PR description."
+            exit 1
+          fi
+
+          # Set the kind labels based on the kinds
+          KIND_LABELS=$(echo "$KINDS" | awk '{print "kind/"$1}')
+
+          # Get the current kind labels of the pull request
+          OLD_LABELS=$(gh pr view ${{ github.event.number }} --json labels --jq '.labels[].name' | grep -E '^(kind)/' || true)
+
+          # Remove old kind labels that are not in the PR description
+          for OLD_LABEL in $OLD_LABELS; do
+            if ! echo "$KIND_LABELS" | grep -q "$OLD_LABEL"; then
+              gh issue edit ${{ github.event.number }} --remove-label "${OLD_LABEL}"
+            fi
+          done
+
+          # Add new kind labels that are not already on the PR
+          for KIND_LABEL in $KIND_LABELS; do
+            if ! echo "$OLD_LABELS" | grep -q "$KIND_LABEL"; then
+              gh issue edit ${{ github.event.number }} --add-label "${KIND_LABEL}"
+            fi
+          done
+        shell: bash
