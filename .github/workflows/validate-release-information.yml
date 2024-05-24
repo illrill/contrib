@@ -22,16 +22,22 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set release type label
         run: |
-          REGEX="(^|\n)\/release (major|minor|patch|none)(\n|$)"
-          if [[ $PR_DESCRIPTION =~ $REGEX ]]; then
-            NEW="release/${BASH_REMATCH[2]}"
-            echo "Detected release type: release/$NEW"
-            OLD=$(gh pr view ${{ github.event.number }} --json labels --jq '.labels[].name' | grep -E '^(release)/' || true)
-            if [[ $NEW != $OLD ]]; then
-              DEL=${OLD[@]/$NEW} && DEL=$(echo $DEL | tr ' ' ,)
-              gh issue edit ${{ github.event.number }} --add-label "${NEW}" --remove-label "${DEL}"
+          REGEX="^\/release (major|minor|patch|none)$"
+          RELEASE_LABEL=""
+          while IFS= read -r line; do
+            if [[ $line =~ $REGEX ]]; then
+              RELEASE_LABEL="release/${BASH_REMATCH[1]}"
+              echo "Detected release type: $RELEASE_LABEL"
+              break
             fi
-            echo RELEASE_LABEL=$NEW >> $GITHUB_ENV
+          done <<< "$PR_DESCRIPTION"
+          if [[ -n $RELEASE_LABEL ]]; then
+            OLD=$(gh pr view ${{ github.event.number }} --json labels --jq '.labels[].name' | grep -E '^(release)/' || true)
+            if [[ $RELEASE_LABEL != $OLD ]]; then
+              DEL=${OLD[@]/$RELEASE_LABEL} && DEL=$(echo $DEL | tr ' ' ,)
+              gh issue edit ${{ github.event.number }} --add-label "${RELEASE_LABEL}" --remove-label "${DEL}"
+            fi
+            echo RELEASE_LABEL=$RELEASE_LABEL >> $GITHUB_ENV
           else
             echo "No release type detected. Please use /release <major|minor|patch|none> in the PR description."
             exit 1
