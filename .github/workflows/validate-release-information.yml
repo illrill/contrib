@@ -1,0 +1,40 @@
+name: Validate Release Information
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - edited
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  release-info:
+    runs-on: ubuntu-latest
+    env:
+      PR_DESCRIPTION: ${{ github.event.pull_request.body }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set release type label
+        run: |
+          REGEX="^\/release (major|minor|patch|none)$"
+          if [[ $PR_DESCRIPTION =~ $REGEX ]]; then
+            NEW="release/${BASH_REMATCH[1]}"
+            echo "Detected release type: release/$NEW"
+            OLD=$(gh pr view ${{ github.event.number }} --json labels --jq '.labels[].name' | grep -E '^(release)/' || true)
+            if [[ $NEW != $OLD ]]; then
+              DEL=${OLD[@]/$NEW} && DEL=$(echo $DEL | tr ' ' ,)
+              gh issue edit ${{ github.event.number }} --add-label "${NEW}" --remove-label "${DEL}"
+            fi
+            echo RELEASE_LABEL=$NEW >> $GITHUB_ENV
+          else
+            echo "No release type detected. Please use /release <major|minor|patch|none> in the PR description."
+            exit 1
+          fi
+      - name: Check release note
+        run: echo ${{ env.RELEASE_LABEL }}
