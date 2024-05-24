@@ -23,7 +23,7 @@ jobs:
       - run: echo $PR_DESCRIPTION
       - name: Set release type label
         run: |
-          RELEASE_TYPES=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/release )\b(major|minor|patch|none)\b')
+          RELEASE_TYPES=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/release )\b(major|minor|patch|none)\b' || true)
           if [[ -z $RELEASE_TYPES ]]; then
             echo "No valid release type found. Specify /release <major|minor|patch|none> in the PR description."
             exit 1
