@@ -55,7 +55,7 @@ jobs:
           PR_DESCRIPTION=$(echo "$PR_DESCRIPTION" | tr '\n' '\r')
 
           # Extract release note from PR description
-          RELEASE_NOTE=$(echo "$PR_DESC" | grep -Po '(?s)```release-note\r(.*?)\r```' || true)
+          RELEASE_NOTE=$(echo "$PR_DESCRIPTION" | grep -Po '(?s)```release-note\r(.*?)\r```' || true)
 
           # Convert release note carriage returns back to newlines and remove the first two lines and the last line
           RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | tr '\r' '\n' | awk 'NR>2 && !/```/')
@@ -91,11 +91,11 @@ jobs:
       - name: Set kind label
         run: |
           # Extract kinds from PR description
-          KINDS=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/kind )\b(chore|feature|bug|cleanup|documentation)\b' || true)
+          KINDS=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/kind )\b(chore|feature|bug|refactor|documentation)\b' || true)
 
           # Check if a valid kind is found
           if [[ -z $KINDS ]]; then
-            echo "No valid kind found. Specify /kind <chore|feature|bug|cleanup|documentation> in the PR description."
+            echo "No valid kind found. Specify /kind <chore|feature|bug|refactor|documentation> in the PR description."
             exit 1
           fi
 
