@@ -20,7 +20,6 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
-      - run: echo $PR_DESCRIPTION
       - name: Set release type label
         run: |
           RELEASE_TYPES=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/release )\b(major|minor|patch|none)\b' || true)
@@ -37,4 +36,15 @@ jobs:
           [[ $RELEASE_LABEL != $OLD_LABEL ]] && gh issue edit ${{ github.event.number }} --add-label "${RELEASE_LABEL}" --remove-label "${OLD_LABEL}"
           echo RELEASE_LABEL=$RELEASE_LABEL >> $GITHUB_ENV
       - name: Check release note
-        run: echo ${{ env.RELEASE_LABEL }}
+        run: |
+          RELEASE_NOTE=$(echo "$PR_DESCRIPTION" | grep -Pzo '(?s)```release-note\n(.+)\n```' || true)
+          RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | sed -n 2p)
+          if [[ -z $RELEASE_NOTE ]]; then
+            echo "No release note found. Please write a meaningful release note in the PR description in the format:"
+            echo -e "```release-note\n<Description of the release>\n```"
+            exit 1
+          fi
+          if [[ $RELEASE_NOTE_CONTENT == "None" && $RELEASE_LABEL != "release/none" ]]; then
+            echo "Release note may not be 'NONE' since you specified release type $RELEASE_LABEL. Please write a meaningful release note."
+            exit 1
+          fi
