@@ -20,6 +20,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
+      - run: echo $PR_DESCRIPTION
       - name: Set release type label
         run: |
           RELEASE_TYPES=$(echo "$PR_DESCRIPTION" | grep -oP '(?<=/release )\b(major|minor|patch|none)\b' || true)
