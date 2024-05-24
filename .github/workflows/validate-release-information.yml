@@ -41,12 +41,15 @@ jobs:
           PR_DESCRIPTION_ONE_LINE=$(echo "$PR_DESCRIPTION" | tr '\n' '\r')
           RELEASE_NOTE=$(echo "$PR_DESCRIPTION_ONE_LINE" | grep -Po '(?s)```release-note\r(.*?)\r```' || true)
           RELEASE_NOTE_CONTENT=$(echo -e "$RELEASE_NOTE" | tr '\r' '\n' | sed -n '3p')
+          echo "Release note:"
+          echo "---------------------"
+          echo "$RELEASE_NOTE_CONTENT"
           if [[ -z $RELEASE_NOTE ]]; then
             echo "No release note found. Please write a meaningful release note in the PR description in the format:"
             printf "```\nrelease-note\n<Description of the release>\n```\n"
             exit 1
           fi
-          if [[ $RELEASE_NOTE_CONTENT == "None" && $RELEASE_LABEL != "release/none" ]]; then
-            echo "Release note may not be 'NONE' since you specified release type $RELEASE_LABEL. Please write a meaningful release note."
+          if [[ -z $RELEASE_NOTE_CONTENT && ${{ env.RELEASE_LABEL }} != "release/none" ]]; then
+            echo "Release note may not be empty since you specified release type ${{ env.RELEASE_LABEL }}. Please write a meaningful release note."
             exit 1
           fi
