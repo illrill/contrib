@@ -20,8 +20,10 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v2
+      - run: echo $PR_DESCRIPTION
       - name: Set release type label
         run: |
+          PR_DESCRIPTION="${PR_DESCRIPTION//'%0A'/}"
           REGEX="^\/release (major|minor|patch|none)$"
           RELEASE_LABEL=""
           while IFS= read -r line; do
